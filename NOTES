@@ -1,0 +1,24 @@
+
+Shapes
+
+I       J      L     O     S     T     Z
+
+           *  *     **   **     *      **
+****    ****  ****  **    **   ***    **
+
+7 shapes
+
+4 x 2 bricks image is 64 x 32 pixels giving 16 x 16 bricks
+
+Game Gride is 10 x 20
+
+160 x 320
+
+TODO:
+
++ Hit detection on rotations
++ Completed line detection/removal
+
+- Scoring
+- Game over screen
+- Speed up/levels

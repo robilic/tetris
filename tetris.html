@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]> <html lang="en-us" class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>    <html lang="en-us" class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>    <html lang="en-us" class="no-js ie8 lt-ie9"> <![endif]-->
+<!--[if IE 9]>    <html lang="en-us" class="no-js ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html lang="en-us"> <!--<![endif]-->
+  <head>
+    <title>TETRIS</title>
+	<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+	<script type="text/javascript">
+    $(document).ready(function() {
+      var screen = document.getElementById("game_screen");
+      var context = screen.getContext("2d");
+      context.font = '12pt Arial';
+
+      var FRAMERATE = 30;
+
+      var game = {
+        speed: 24,  // How many frames it takes a piece to drop
+        lines: 0,
+        score: 0
+      };
+
+      var dropFrameCount = 0;
+      // screen.width/height
+      var SCREEN_X = 320;
+      var SCREEN_Y = 320;
+
+      var XSIZE = 16;  // tile sizes in pixels
+      var YSIZE = 16;
+
+      var GAME_STATE = 'GAME_START';
+
+      var grid =
+        [ [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 4, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 4, 0, 0, 0, 0, 0, 0],
+          [0, 6, 0, 5, 4, 0, 0, 0, 5, 0],
+          [7, 6, 6, 1, 3, 3, 0, 0, 4, 0],
+          [7, 1, 2, 2, 2, 1, 0, 0, 4, 2]
+        ];
+
+      var curPiece = { id: 0, x: 0, y: 0, rot: 0, stuck: false };
+      var nextPiece = Math.floor(Math.random()*7);
+      var nextAnimate = 0;
+
+      var blocks = 
+      [  
+        [  // 1 - block ID
+          [  // rotation ID
+            [0, 0, 0, 0],
+            [1, 1, 1, 1],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [0, 1, 0, 0],
+            [0, 1, 0, 0],
+            [0, 1, 0, 0],
+            [0, 1, 0, 0]
+          ],
+          [
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [1, 1, 1, 1],
+            [0, 0, 0, 0]
+          ],
+          [
+            [0, 0, 1, 0],
+            [0, 0, 1, 0],
+            [0, 0, 1, 0],
+            [0, 0, 1, 0]
+          ]
+        ],
+        [  // 2
+          [
+            [2, 2, 0, 0],
+            [2, 2, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [2, 2, 0, 0],
+            [2, 2, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [2, 2, 0, 0],
+            [2, 2, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [2, 2, 0, 0],
+            [2, 2, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+          ]
+        ],
+        [  // 3
+          [
+            [0, 3, 0, 0],
+            [3, 3, 3, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [3, 0, 0, 0],
+            [3, 3, 0, 0],
+            [3, 0, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [3, 3, 3, 0],
+            [0, 3, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [0, 3, 0, 0],
+            [3, 3, 0, 0],
+            [0, 3, 0, 0],
+            [0, 0, 0, 0]
+          ]
+        ],
+        [  // 4
+          [
+            [4, 4, 0, 0],
+            [4, 0, 0, 0],
+            [4, 0, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [4, 4, 4, 0],
+            [0, 0, 4, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [0, 4, 0, 0],
+            [0, 4, 0, 0],
+            [4, 4, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [4, 0, 0, 0],
+            [4, 4, 4, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+          ]
+        ],
+        [  // 5
+          [
+            [5, 5, 0, 0],
+            [0, 5, 0, 0],
+            [0, 5, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [0, 0, 5, 0],
+            [5, 5, 5, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [5, 0, 0, 0],
+            [5, 0, 0, 0],
+            [5, 5, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [5, 5, 5, 0],
+            [5, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+          ]
+        ],
+        [  // 6
+          [
+            [6, 6, 0, 0],
+            [0, 6, 6, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [0, 6, 0, 0],
+            [6, 6, 0, 0],
+            [6, 0, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [6, 6, 0, 0],
+            [0, 6, 6, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [0, 6, 0, 0],
+            [6, 6, 0, 0],
+            [6, 0, 0, 0],
+            [0, 0, 0, 0]
+          ]
+        ],
+        [  // 7
+          [
+            [0, 7, 7, 0],
+            [7, 7, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [7, 0, 0, 0],
+            [7, 7, 0, 0],
+            [0, 7, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [0, 7, 7, 0],
+            [7, 7, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+          ],
+          [
+            [7, 0, 0, 0],
+            [7, 7, 0, 0],
+            [0, 7, 0, 0],
+            [0, 0, 0, 0]
+          ]
+        ],
+      ];
+
+      var tiles = [ '' ];
+      // Load tiles
+      for (tnum = 1; tnum < 9; tnum++) {
+        var imageObj = new Image();
+        imageObj.src = 'assets/brick' + tnum + '.png';
+        console.log('Loading ' + imageObj.src);
+        tiles.push(imageObj);
+      }
+
+      console.log(tiles);
+
+      restartGame = function () {
+        score = 0;
+      }
+
+      setMessage = function () {
+        var fontSize = 40;
+        context.font = fontSize + "px Courier";
+        context.fillStyle = '#aaaaaa';
+        context.strokeStyle = '#000000';
+
+        switch (messageText) {
+          case 'GAME_OVER':
+            var fontSize = 40;
+            context.font = fontSize + "px Courier";
+            drawMessage("GAME OVER", 130, 150);
+            fontSize = 20;
+            context.font = fontSize + "px Courier";
+            drawMessage("PRESS FIRE TO CONTINUE", 50, 200);
+            break;
+          case 'GAME_START':
+            var fontSize = 32;
+            context.font = fontSize + "px Courier";
+            drawMessage("GET READY!", 70, 150);            
+            fontSize = 20;
+            context.font = fontSize + "px Helvetica";
+            drawMessage("PRESS ROTATE (UP) TO PLAY", 15, 200);
+            break;
+          default:
+            break;
+        }
+      }
+
+      drawMessage = function (txt, x, y) {
+        context.fillText(txt, x, y);
+//        context.strokeText(txt, x, y);
+      };
+
+      drawPiece = function (id, rot, px, py) {
+        console.log('x = ' + px + ', y = ' + py);
+        for (x = 0; x < 4; x++) {
+          for (y = 0; y < 4; y++) {
+            b = blocks[id][rot][y][x];
+            if ( b != 0) {
+              context.drawImage(tiles[b], (px+x)*XSIZE, (py+y)*YSIZE, XSIZE, YSIZE);
+            }
+          }
+        }
+      };
+
+      eraseScreen = function () {
+        context.fillStyle = "#202020";
+        context.fillRect(0,0, SCREEN_X / 2, SCREEN_Y);
+        context.fillStyle = "#303030";
+        context.fillRect(SCREEN_X / 2,0, SCREEN_X, SCREEN_Y);
+        drawScore();
+      };
+
+      drawScore = function () {
+        context.fillStyle = "#202020";
+        context.fillRect((SCREEN_X / 2) + 40, 40, 110, 30);
+        var fontSize = 16;
+        context.font = fontSize + "px Courier";
+        context.strokeStyle = "#b0b0a0";
+        context.fillStyle = "#c0c0c0";
+        drawMessage("LINES: " + game.lines, 210, 60);
+      }
+
+      drawNextPiece = function () {
+        nextAnimate++;
+        if (nextAnimate > 390) {
+          nextAnimate = 0
+        }
+        context.fillStyle = "#202020";
+        context.fillRect((SCREEN_X / 2) + 40, 82, 75, 70);
+        drawPiece(nextPiece, Math.floor(nextAnimate/100), 13, 6);
+        console.log('NP = ' + nextPiece);
+      };
+
+      drawLevel = function () {
+        for (x = 0; x < 10; x++) {
+          for (y = 0; y < 20; y++) {
+            if (grid[y][x] != 0) {
+              context.drawImage(tiles[grid[y][x]], x*XSIZE, y*YSIZE, XSIZE, YSIZE);
+            }
+          }
+        }
+      };
+
+      makeNewPiece = function () {
+        curPiece.id = nextPiece;
+        curPiece.rot = 0;
+        curPiece.x = 4; curPiece.y = 0;
+        curPiece.stuck = false;
+        nextPiece = Math.floor(Math.random()*7);
+      };
+
+      gameLoop = function (o) {
+        switch (GAME_STATE) {
+          case 'DEAD':
+            break;
+          case 'PLAYING':
+              eraseScreen();
+              if (dropFrameCount >= game.speed) {
+                dropFrameCount = 0;
+                curPieceDrop();
+              } else {
+                dropFrameCount++;
+              }
+              drawLevel();
+              drawNextPiece();
+              drawPiece(curPiece.id, curPiece.rot, curPiece.x, curPiece.y);
+
+              if (curPiece.stuck) {
+                curPieceCopyToGrid();
+                makeNewPiece();
+                checkCompletedRows();
+              }
+            break;
+          case 'GAME_START':
+            messageText = 'GAME_START';
+            eraseScreen();
+            break;
+          default:
+            break;
+        }
+        if (messageText != '') {
+          setMessage();
+        }
+      };
+
+      curPieceDrop = function () {
+        landed = false;
+
+        for (x = 0; x < 4; x++) {
+          for (y = 0; y < 4; y++) {
+            b = blocks[curPiece.id][curPiece.rot][y][x];
+            if (b != 0) {
+              if ((curPiece.y+y+1) > 19) {  // bottom of grid
+                landed = true;                
+              } else if (grid[curPiece.y+y+1][curPiece.x+x] != 0) {
+                landed = true;
+              }
+            }
+          }
+        }
+
+        if (!landed) {
+          curPiece.y++;
+        } else {
+          curPiece.stuck = true;
+        }
+      };
+
+      curPieceRotateLeft = function () {
+        r = curPiece.rot + 1;
+
+        if (r > 3) {
+          r = 0;
+        }
+
+        hit = false;
+
+        for (x = 0; x < 4; x++) {
+          for (y = 0; y < 4; y++) {
+            b = blocks[curPiece.id][r][y][x];
+            if (b != 0) {
+              if (grid[curPiece.y+y][curPiece.x+x] != 0) {
+                hit = true;
+              }
+            }
+          }
+        }
+
+        if (!hit) {
+          curPiece.rot = r;
+        }
+      };
+
+      curPieceRotateRight = function () {
+        r = curPiece.rot -1;
+
+        if (r < 0) {
+          r = 3;
+        }
+
+        hit = false;
+
+        for (x = 0; x < 4; x++) {
+          for (y = 0; y < 4; y++) {
+            b = blocks[curPiece.id][r][y][x];
+            if (b != 0) {
+              if (grid[curPiece.y+y][curPiece.x+x] != 0) {
+                hit = true;
+              }
+            }
+          }
+        }
+
+        if (!hit) {
+          curPiece.rot = r;
+        }
+      };
+
+      curPieceMoveLeft = function () {
+        hit = false;
+
+        for (x = 0; x < 4; x++) {
+          for (y = 0; y < 4; y++) {
+            b = blocks[curPiece.id][curPiece.rot][y][x];
+            if (b != 0) {
+              if ((curPiece.x+x-1) < 0) {  // bottom of grid
+                hit = true;                
+              } else if (grid[curPiece.y+y][curPiece.x+x-1] != 0) {
+                hit = true;
+              }
+            }
+          }
+        }
+
+        if (!hit) {
+          curPiece.x--;
+        }
+      }
+
+      curPieceMoveRight = function () {
+        hit = false;
+
+        for (x = 0; x < 4; x++) {
+          for (y = 0; y < 4; y++) {
+            b = blocks[curPiece.id][curPiece.rot][y][x];
+            if (b != 0) {
+              if ((curPiece.x+x+1) > 9) {  // bottom of grid
+                hit = true;                
+              } else if (grid[curPiece.y+y][curPiece.x+x+1] != 0) {
+                hit = true;
+              }
+            }
+          }
+        }
+
+        if (!hit) {
+          curPiece.x++;
+        }
+      }
+
+      curPieceCopyToGrid = function () {
+        for (x = 0; x < 4; x++) {
+          for (y = 0; y < 4; y++) {
+            b = blocks[curPiece.id][curPiece.rot][y][x];
+            if (b != 0) {
+              grid[curPiece.y + y][curPiece.x + x] = b;
+            }
+          }
+        }
+      }
+
+      checkCompletedRows = function () {
+        for (y = 0; y < 20; y++) {
+          completedRow = true;
+
+          for (x = 0; x < 10; x++) {
+            if (grid[y][x] == 0) {
+              completedRow = false;
+            }
+          }
+
+          if (completedRow) {
+            game.lines++;
+            game.speed = 24 - Math.floor(1.6*(game.lines/10));
+            grid[y] = [0,0,0,0,0,0,0,0,0,0];
+            dropRows(y);
+          }
+        }
+      }
+
+      dropRows = function (first) {
+        for (y = first; y > 0; y--) {
+          console.log('Dropping row ' + y);
+          for (x = 0; x < 10; x++) {
+            grid[y][x] = grid[y-1][x];
+          }
+        }
+        grid[0] = [0,0,0,0,0,0,0,0,0,0];
+      }
+
+      //
+      // The actual game starts here
+      //
+
+      restartGame();
+      makeNewPiece();
+
+      eraseScreen();
+
+      setInterval(function() { gameLoop(); }, 1000/FRAMERATE);
+
+      $(document).bind('keydown', function(event) {
+        k = event.which
+
+        switch (GAME_STATE) {
+            case 'GAME_START':
+              switch (k) {
+                case 38:
+                  messageText = '';
+                  GAME_STATE = 'PLAYING';
+                  break;
+                default:
+                  break;
+              }
+            break;
+            case 'DEAD':
+              switch (k) {
+                case 90:
+                  messageText = '';
+                  GAME_STATE = 'PLAYING';
+                  restartGame();
+                  break;
+                default:
+                  break;
+              }
+            break;           
+            case 'PLAYING':
+              switch (k) {
+                case 90: // z
+                  curPieceRotateLeft();
+                  break;
+                case 88: // x
+                  curPieceRotateRight();
+                  break;
+                case 37: // left
+                  curPieceMoveLeft();
+                  break;
+                case 38: // up
+                  curPieceRotateLeft();
+                  break;
+                case 39: // right
+                  curPieceMoveRight();
+                  break;
+                case 40: // down
+                  curPieceDrop();
+                  break;
+              }
+            break;
+          } // end switch GAME_STATE
+      });
+      $(document).bind('keyup', function(event) {
+        k = event.which
+        switch (k) {
+          case 37:  // left
+            break;
+          case 38:  // up
+            break;
+          case 39:  // right
+            break;
+          case 40:  // down
+            break;
+        }
+      });
+    });
+    </script>
+  </head>
+  <body>
+    <div id="game_div" align="center">
+      <canvas id="game_screen" width="320" height="320">Get a real browser.</canvas>
+    </div>
+    <div id="msg-keypress">
+    </div>
+  </body>
+</html>
